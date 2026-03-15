@@ -5,15 +5,15 @@ addLayer("od", {
     row: 0,
     color: "#3252a8",
     resource: "Odyssey Points",
-    baseResource: "Odyssey Points", // No longer prestige points
-    baseAmount() { return player.od.points },
-    requires: new Decimal(0), // No requirement to unlock the layer
+    baseResource: "Odyssey Points",
+    baseAmount() { return player.od.points },  // No prestige points
+    requires: new Decimal(0),
     type: "normal",
     exponent: 0.5,
     startData() { 
         return {
             unlocked: true,
-            points: new Decimal(10), // initial Odyssey Points
+            points: new Decimal(10),
         }
     },
     gainMult() {
@@ -30,21 +30,25 @@ addLayer("od", {
     gainExp() { return new Decimal(1) },
 
     autoPrestige: false,
-    canReset() { return player.od.points.gte("1e15000") }, // Only allow reset after reaching the final milestone
+    canReset() { return player.od.points.gte("1e15000") },
 
     doReset(resettingLayer) {
         if (resettingLayer === "od") {
-            player.prestigeGainBoost = (player.prestigeGainBoost || 1) + 1; // +100% prestige gain (×2)
+            player.prestigeGainBoost = (player.prestigeGainBoost || 1) + 1;
         }
     },
 
-    layerShown() { return true; }, // always shown
+    layerShown() { return true; },
+
+    update(diff) {
+        // Keep player.points always equal to Odyssey Points
+        player.points = player.od.points
+    },
 
     passiveGeneration() {
-        // First upgrade enables 1 Odyssey Point/sec passive, others increase it.
         let gen = new Decimal(0);
         if (hasUpgrade('od', 11)) gen = gen.plus(1);
-        if (hasUpgrade('od', 22)) gen = gen.plus(getBuyableAmount('od', 22).times(0.5)); // Wormhole Engineers (0.5/s per level)
+        if (hasUpgrade('od', 22)) gen = gen.plus(getBuyableAmount('od', 22).times(0.5));
         return gen;
     },
 
@@ -152,7 +156,6 @@ addLayer("od", {
             cost: new Decimal(1.7e12),
             unlocked() { return hasUpgrade('od', 26); },
             effect() {
-                // e.g. 1.05x per total buyable
                 let amt = totalBuyables()
                 return new Decimal(1.05).pow(amt);
             },
@@ -185,9 +188,9 @@ addLayer("od", {
         cols: 3,
         11: {
             title: "Cosmic Thrusters",
-            cost(x) { // 2x
+            cost(x) {
                 let base = new Decimal(250);
-                if (hasUpgrade('od', 23)) base = base.times(0.75); // Cost reduction
+                if (hasUpgrade('od', 23)) base = base.times(0.75);
                 return base.times(Decimal.pow(2, x));
             },
             display() {
@@ -248,10 +251,10 @@ addLayer("od", {
             },
             display() {
                 let amt = getBuyableAmount("od", 13);
-                return `Increase Prestige gain by +1% per level<br>
+                return `Increase Odyssey gain by +1% per level<br>
                         Amount: ${amt}<br>
                         Cost: ${format(this.cost(amt))} O<br>
-                        Effect: +${amt}% Prestige gain`;
+                        Effect: +${amt}% Odyssey gain`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 13))) },
             buy() {
