@@ -478,6 +478,8 @@ addLayer("od", {
 // Helper for total buyables
 function totalBuyables() {
     let total = new Decimal(0);
-    [11,12,13,21,22,23,31,32,33].forEach(id=> total = total.plus(getBuyableAmount("od", id)));
+    [11,12,13,21,22,23,31,32,33].forEach(id => {
+        total = total.plus(getBuyableAmount("od", id));
+    });
     return total;
 }
