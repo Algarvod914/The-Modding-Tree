@@ -6,7 +6,7 @@ addLayer("od", {
     color: "#3252a8",
     resource: "Odyssey Points",
     baseResource: "Odyssey Points",
-    baseAmount() { return player.od.points },  // No prestige points
+    baseAmount() { return player.od.points },
     requires: new Decimal(0),
     type: "normal",
     exponent: 0.5,
@@ -18,13 +18,11 @@ addLayer("od", {
     },
     gainMult() {
         let mult = new Decimal(1)
-        // Multipliers from upgrades
         for (let i = 12; i <= 15; i++) {
             if (hasUpgrade('od', i)) mult = mult.times(upgradeEffect('od', i))
         }
-        // Multipliers from buyables
-        mult = mult.times(getBuyableAmount('od', 11).times(0.02).plus(1)); // Cosmic Thrusters (2%/level)
-        mult = mult.times(getBuyableAmount('od', 31).times(0.01).plus(1)); // Quantum Navigators (1%/level to all upgrades)
+        mult = mult.times(getBuyableAmount('od', 11).times(0.02).plus(1));
+        mult = mult.times(getBuyableAmount('od', 31).times(0.01).plus(1));
         return mult
     },
     gainExp() { return new Decimal(1) },
@@ -41,8 +39,15 @@ addLayer("od", {
     layerShown() { return true; },
 
     update(diff) {
-        // Keep player.points always equal to Odyssey Points
-        player.points = player.od.points
+        // NaN defense and synchronizing player.points == player.od.points
+        if (!(player.od && player.od.points instanceof Decimal) || isNaN(player.od.points.mag) || !isFinite(player.od.points.mag)) {
+            player.od.points = new Decimal(10);
+        }
+        if (!(player.points instanceof Decimal) || isNaN(player.points.mag) || !isFinite(player.points.mag)) {
+            player.points = new Decimal(player.od.points);
+        }
+        // Always keep points in sync (OD is points!)
+        player.points = player.od.points;
     },
 
     passiveGeneration() {
@@ -197,7 +202,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 11);
                 return `Increase Odyssey gain by +2% per level<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: ×${format(this.effect())}`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 11))) },
@@ -225,7 +230,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 12);
                 return `Automate upgrades at certain milestones<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: +${amt * 1.5}% Odyssey gain`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 12))) },
@@ -253,7 +258,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 13);
                 return `Increase Odyssey gain by +1% per level<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: +${amt}% Odyssey gain`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 13))) },
@@ -309,8 +314,8 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 22);
                 return `Boosts Odyssey passive gain by +0.5/s each<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
-                        Effect: +${amt * 0.5} O/s`;
+                        Cost: ${format(this.cost(amt))} OD<br>
+                        Effect: +${amt * 0.5} OD/s`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 22))) },
             buy() {
@@ -337,8 +342,8 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 23);
                 return `Increase max Odyssey Points by 3% per level<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
-                        Effect: +${amt * 3}% max O`;
+                        Cost: ${format(this.cost(amt))} OD<br>
+                        Effect: +${amt * 3}% max OD`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 23))) },
             buy() {
@@ -365,7 +370,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 31);
                 return `Multiply all Odyssey upgrade effects by +1% per level<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: +${amt}% all upgrades`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 31))) },
@@ -393,7 +398,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 32);
                 return `Multiply all buyables' effects by 1% per level<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: +${amt}% all buyables effect`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 32))) },
@@ -421,7 +426,7 @@ addLayer("od", {
                 let amt = getBuyableAmount("od", 33);
                 return `Chance to double Odyssey gain (+0.2% per level)<br>
                         Amount: ${amt}<br>
-                        Cost: ${format(this.cost(amt))} O<br>
+                        Cost: ${format(this.cost(amt))} OD<br>
                         Effect: +${(amt * 0.2).toFixed(2)}% double gain`;
             },
             canAfford() { return player.od.points.gte(this.cost(getBuyableAmount("od", 33))) },
