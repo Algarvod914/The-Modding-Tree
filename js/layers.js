@@ -2,16 +2,13 @@
 // End Game: 1e15000000000 Points
 
 // ==========================================
-// ROW 0: 1 Layer (Pre-Encounter Navigational Data)
+// ROW 0: Navigational Scans
 // ==========================================
 addLayer("nav", {
     name: "Pre-Encounter",
     symbol: "N",
     position: 0,
-    startData() { return {
-        unlocked: true,
-        points: new Decimal(0),
-    }},
+    startData() { return { unlocked: true, points: new Decimal(0) }},
     color: "#4BDC13",
     requires: new Decimal(10),
     resource: "Navigational Scans",
@@ -25,16 +22,16 @@ addLayer("nav", {
     upgrades: {
         11: {
             title: "Clear the Oort Cloud",
-            description: "Begin long-range spectroscopic surveys. Multiplies point gain by 5.",
+            description: "Begin long-range spectroscopic surveys. Multiplies point gain.",
             cost: new Decimal(1),
+            effect() { return new Decimal(5) },
+            effectDisplay() { return format(upgradeEffect(this.layer, this.id))+"x" },
         },
         12: {
             title: "Subspace Distortion",
-            description: "The gravity well of the binary system boosts point gain based on Nav Scans.",
+            description: "The gravity well boosts point gain based on Nav Scans.",
             cost: new Decimal(5),
-            effect() {
-                return player[this.layer].points.add(1).pow(0.5);
-            },
+            effect() { return player[this.layer].points.add(1).pow(0.5) },
             effectDisplay() { return format(upgradeEffect(this.layer, this.id))+"x" },
         },
         13: {
@@ -46,16 +43,13 @@ addLayer("nav", {
 });
 
 // ==========================================
-// ROW 1: 2 Layers (Ophiuchi A and Ophiuchi B)
+// ROW 1: Ophiuchi A & B
 // ==========================================
 addLayer("starA", {
     name: "V1399 Ophiuchi A",
     symbol: "A",
     position: 0,
-    startData() { return {
-        unlocked: false,
-        points: new Decimal(0),
-    }},
+    startData() { return { unlocked: false, points: new Decimal(0) }},
     color: "#FFD700",
     requires: new Decimal(100),
     resource: "Solar Mass",
@@ -71,11 +65,15 @@ addLayer("starA", {
             title: "G7IIIa Yellow Giant",
             description: "A titan of fusion. 6.82x solar mass. Squares point generation.",
             cost: new Decimal(1),
+            effect() { return new Decimal(2) },
+            effectDisplay() { return "^" + format(upgradeEffect(this.layer, this.id)) },
         },
         12: {
             title: "Magnitude 7.2 Earthquake",
-            description: "2,335 times the luminosity of Sol. Exponentially boosts Nav Scans.",
+            description: "2,335 times the luminosity of Sol. Boosts Nav Scan generation.",
             cost: new Decimal(3),
+            effect() { return player[this.layer].points.add(1).pow(1.5) },
+            effectDisplay() { return format(upgradeEffect(this.layer, this.id))+"x" },
         }
     }
 });
@@ -84,10 +82,7 @@ addLayer("starB", {
     name: "V1399 Ophiuchi B",
     symbol: "B",
     position: 1,
-    startData() { return {
-        unlocked: false,
-        points: new Decimal(0),
-    }},
+    startData() { return { unlocked: false, points: new Decimal(0) }},
     color: "#00BFFF",
     requires: new Decimal(100),
     resource: "UV Radiation",
@@ -114,7 +109,7 @@ addLayer("starB", {
 });
 
 // ==========================================
-// ROW 2: 3 Layers (Worm, Blackout, Science)
+// ROW 2: The Worm, Blackout, & Science
 // ==========================================
 addLayer("worm", {
     name: "Macro-Biological Entity",
@@ -134,13 +129,17 @@ addLayer("worm", {
     upgrades: {
         11: {
             title: "Crystalline Scales",
-            description: "Organic solar panels absorb pure potential. Point gain is raised to the power of 1.5.",
+            description: "Organic solar panels absorb pure potential. Exponentiates point gain.",
             cost: new Decimal(100),
+            effect() { return new Decimal(1.5) },
+            effectDisplay() { return "^" + format(upgradeEffect(this.layer, this.id)) },
         },
         12: {
             title: "Target Acquired",
-            description: "It senses the M/ARA signature. Automates Row 1 layers.",
+            description: "It senses the M/ARA signature. Multiplies point gain massively.",
             cost: new Decimal(5000),
+            effect() { return new Decimal(1e50) },
+            effectDisplay() { return format(upgradeEffect(this.layer, this.id))+"x" },
         }
     }
 });
@@ -170,7 +169,7 @@ addLayer("blackout", {
                 player[this.layer].points = player[this.layer].points.sub(this.cost())
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
             },
-            effect(x) { return new Decimal(2).pow(x) } // Massive exponential growth jump
+            effect(x) { return new Decimal(2).pow(x) } 
         }
     }
 });
@@ -193,19 +192,21 @@ addLayer("science", {
     upgrades: {
         11: {
             title: "Harmonic Matching (60Hz)",
-            description: "Electric intelligence matches Odyssey's frequency. Points ^2.",
+            description: "Electric intelligence matches Odyssey's frequency.",
             cost: new Decimal(1000),
+            effect() { return new Decimal(2) },
+            effectDisplay() { return "^" + format(upgradeEffect(this.layer, this.id)) },
         },
         12: {
             title: "0.5% Capacity Detachment",
-            description: "The worm lets go, drifting to the B-type star. Unlocks Row 3.",
+            description: "The worm lets go. Unlocks Row 3.",
             cost: new Decimal(1e6),
         }
     }
 });
 
 // ==========================================
-// ROW 3: 2 Layers (Logs, Evaluation)
+// ROW 3: Logs & Evaluation
 // ==========================================
 addLayer("log", {
     name: "Exploration Log",
@@ -225,13 +226,17 @@ addLayer("log", {
     upgrades: {
         11: {
             title: "0400-0800: Survey",
-            description: "High-res mapping. Points ^5.",
+            description: "High-res mapping.",
             cost: new Decimal(10),
+            effect() { return new Decimal(5) },
+            effectDisplay() { return "^" + format(upgradeEffect(this.layer, this.id)) },
         },
         12: {
             title: "1043-1057: The Silent Period",
-            description: "Bioluminescence in the dark. Points ^10.",
+            description: "Bioluminescence in the dark.",
             cost: new Decimal(100),
+            effect() { return new Decimal(10) },
+            effectDisplay() { return "^" + format(upgradeEffect(this.layer, this.id)) },
         }
     }
 });
@@ -255,7 +260,7 @@ addLayer("eval", {
         11: {
             title: "Run 'Cold' Protocols",
             cost(x) { return new Decimal(1).add(x) },
-            display() { return "Minimize emissions. Exponential Point Boost.\nCost: " + format(this.cost()) + " SOP Updates\nEffect: Points ^" + format(this.effect()) },
+            display() { return "Minimize emissions.\nCost: " + format(this.cost()) + " SOP Updates\nEffect: Points ^" + format(this.effect()) },
             canAfford() { return player[this.layer].points.gte(this.cost()) },
             buy() {
                 player[this.layer].points = player[this.layer].points.sub(this.cost())
@@ -267,7 +272,7 @@ addLayer("eval", {
 });
 
 // ==========================================
-// ROW 4: 1 Layer (Starbase 42 Recalibration - End Game)
+// ROW 4: End Game
 // ==========================================
 addLayer("end", {
     name: "Starbase 42",
@@ -294,7 +299,7 @@ addLayer("end", {
                 player[this.layer].points = player[this.layer].points.sub(this.cost())
                 setBuyableAmount(this.layer, this.id, getBuyableAmount(this.layer, this.id).add(1))
             },
-            effect(x) { return new Decimal("1e100").pow(x) } // Ridiculous growth to hit the 1e15,000,000,000 mark
+            effect(x) { return new Decimal("1e100").pow(x) } 
         }
     },
     upgrades: {
@@ -302,37 +307,6 @@ addLayer("end", {
             title: "End of Report",
             description: "Signed, Captain [REDACTED]. Reach 1e15,000,000,000 points to finish the game.",
             cost: new Decimal(100),
-            effect() {
-                // Win Condition Trigger
-                if (player.points.gte(new Decimal("1e15000000000"))) {
-                    // TMT win condition hook could go here
-                }
-            }
         }
-    }
-});
-
-// Update standard point generation to dynamically scale with the massive exponents
-addNode("mod", {
-    getPointGen() {
-        if(!canGenPoints()) return new Decimal(0);
-        let gain = new Decimal(1);
-        
-        // Multipliers
-        if (hasUpgrade("nav", 11)) gain = gain.times(5);
-        if (hasUpgrade("nav", 12)) gain = gain.times(upgradeEffect("nav", 12));
-        
-        // Exponents (This is what allows you to reach 1e15,000,000,000)
-        if (hasUpgrade("starA", 11)) gain = gain.pow(2);
-        if (getBuyableAmount("starB", 11).gte(1)) gain = gain.pow(buyableEffect("starB", 11));
-        if (hasUpgrade("worm", 11)) gain = gain.pow(1.5);
-        if (getBuyableAmount("blackout", 11).gte(1)) gain = gain.pow(buyableEffect("blackout", 11));
-        if (hasUpgrade("science", 11)) gain = gain.pow(2);
-        if (hasUpgrade("log", 11)) gain = gain.pow(5);
-        if (hasUpgrade("log", 12)) gain = gain.pow(10);
-        if (getBuyableAmount("eval", 11).gte(1)) gain = gain.pow(buyableEffect("eval", 11));
-        if (getBuyableAmount("end", 11).gte(1)) gain = gain.pow(buyableEffect("end", 11));
-
-        return gain;
     }
 });
