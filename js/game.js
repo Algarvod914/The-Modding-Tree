@@ -43,9 +43,4 @@ function gameLoop() {
 	}
 }
 
-// Ensure the browser tab reflects the exploration status
-function updateTabTitle() {
-	document.title = "USS Odyssey - " + format(player.points) + " Potential";
-}
-
 setInterval(updateTabTitle, 500);
