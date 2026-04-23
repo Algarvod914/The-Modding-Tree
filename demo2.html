@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Simulation & Impact Assessment</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e1a;
+            color: #e0e6ed;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(10, 14, 26, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Control Panel */
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            z-index: 1000;
+            padding: 24px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #control-panel h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #8b92a8;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #b0b8d4;
+        }
+
+        .value-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .value-badge.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .value-badge.warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"].danger-slider::-webkit-slider-thumb {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .location-info {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #8b92a8;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .location-info strong {
+            color: #e0e6ed;
+        }
+
+        /* Stats Panel */
+        #stats-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            z-index: 1000;
+            padding: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(-4px);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .stat-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b92a8;
+            font-weight: 600;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .stat-desc {
+            font-size: 11px;
+            color: #8b92a8;
+        }
+
+        .intensity-bar {
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .intensity-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease, background-color 0.5s ease;
+        }
+
+        /* Legend */
+        .legend-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            z-index: 1000;
+            padding: 16px 20px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #8b92a8;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* Simulate Button */
+        .simulate-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .simulate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .simulate-btn:active {
+            transform: translateY(0);
+        }
+
+        .simulate-btn.simulating {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            10% { transform: translate(-2px, -2px); }
+            20% { transform: translate(2px, -2px); }
+            30% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, 2px); }
+            50% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, -2px); }
+            70% { transform: translate(-2px, 2px); }
+            80% { transform: translate(2px, 2px); }
+            90% { transform: translate(-2px, -2px); }
+        }
+
+        .shaking {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        /* Tooltip */
+        .custom-tooltip {
+            background: rgba(10, 14, 26, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #e0e6ed;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: rgba(10, 14, 26, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #e0e6ed;
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(10, 14, 26, 0.95);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #control-panel, #stats-panel {
+                width: calc(100% - 40px);
+                max-height: 45vh;
+            }
+            #stats-panel {
+                top: auto;
+                bottom: 20px;
+                right: 20px;
+            }
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            margin: 16px 0;
+        }
+
+        . tsunami-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .tsunami-warning.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .warning-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .warning-text {
+            font-size: 11px;
+            color: #d4d4d8;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Control Panel -->
+    <div id="control-panel" class="glass-panel">
+        <h1>🌏 Earthquake Simulator</h1>
+        <div class="subtitle">Click on the map to set epicenter</div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Magnitude (Mw)</span>
+                <span class="value-badge" id="mag-badge">7.0</span>
+            </div>
+            <input type="range" id="magnitude" min="5.0" max="10.0" step="0.1" value="7.0" class="danger-slider">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #8b92a8; margin-top: 4px;">
+                <span>5.0</span>
+                <span>Moderate</span>
+                <span>10.0</span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-label">
+                <span>Focal Depth</span>
+                <span class="value-badge" id="depth-badge">10 km</span>
+            </div>
+            <input type="range" id="depth" min="0" max="1000" step="5" value="10">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #8b92a8; margin-top: 4px;">
+                <span>0 km</span>
+                <span>Shallow</span>
+                <span>1000 km</span>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="location-info">
+            <strong>📍 Epicenter Location</strong><br>
+            <span id="location-text">Lat: 35.6762°N, Lon: 139.6503°E<br>Tokyo, Japan</span>
+        </div>
+
+        <div class="tsunami-warning" id="tsunami-warning">
+            <div class="warning-title">⚠️ TSUNAMI WARNING</div>
+            <div class="warning-text" id="tsunami-text">Tsunami generation possible. Coastal evacuation recommended.</div>
+        </div>
+
+        <button class="simulate-btn" id="simulate-btn" onclick="toggleSimulation()">
+            ▶ Start Simulation
+        </button>
+    </div>
+
+    <!-- Stats Panel -->
+    <div id="stats-panel" class="glass-panel">
+        <h2 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Impact Assessment</h2>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Epicentral Intensity</span>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.2);" id="intensity-icon">💥</div>
+            </div>
+            <div class="stat-value" id="intensity-value">IX</div>
+            <div class="stat-desc" id="intensity-desc">Violent - Heavy damage</div>
+            <div class="intensity-bar">
+                <div class="intensity-fill" id="intensity-bar" style="width: 75%; background: #ef4444;"></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Estimated Tsunami Height</span>
+                <div class="stat-icon" style="background: rgba(59, 130, 246, 0.2);" id="tsunami-icon">🌊</div>
+            </div>
+            <div class="stat-value" id="tsunami-value">3.2 m</div>
+            <div class="stat-desc" id="tsunami-desc">Moderate tsunami risk</div>
+            <div class="intensity-bar">
+                <div class="intensity-fill" id="tsunami-bar" style="width: 32%; background: #3b82f6;"></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Earthquake Fatalities</span>
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.2);">💀</div>
+            </div>
+            <div class="stat-value" id="earthquake-deaths">12,450</div>
+            <div class="stat-desc">Estimated direct casualties</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-title">Tsunami Fatalities</span>
+                <div class="stat-icon" style="background: rgba(139, 92, 246, 0.2);">🌊</div>
+            </div>
+            <div class="stat-value" id="tsunami-deaths">2,180</div>
+            <div class="stat-desc">Estimated coastal casualties</div>
+        </div>
+
+        <div class="stat-card" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2);">
+            <div class="stat-header">
+                <span class="stat-title" style="color: #f87171;">Total Fatalities</span>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.2);">⚠️</div>
+            </div>
+            <div class="stat-value" id="total-deaths" style="color: #f87171;">14,630</div>
+            <div class="stat-desc">Combined earthquake + tsunami</div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="glass-panel legend-panel">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ef4444;"></div>
+            <span>Epicenter</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(239, 68, 68, 0.3);"></div>
+            <span>P-Wave</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(245, 158, 11, 0.3);"></div>
+            <span>S-Wave</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: rgba(59, 130, 246, 0.4);"></div>
+            <span>Tsunami</span>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([35.6762, 139.6503], 6);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // State
+        let epicenter = { lat: 35.6762, lng: 139.6503 };
+        let magnitude = 7.0;
+        let depth = 10;
+        let isSimulating = false;
+        let simulationInterval = null;
+        let waveLayers = [];
+        let tsunamiLayers = [];
+        let epicenterMarker = null;
+        let intensityCircles = [];
+
+        // Location names database (simplified)
+        const locationNames = {
+            'JP': 'Japan',
+            'US-CA': 'California, USA',
+            'US-AK': 'Alaska, USA',
+            'ID': 'Indonesia',
+            'CL': 'Chile',
+            'MX': 'Mexico',
+            'TR': 'Turkey',
+            'IR': 'Iran',
+            'CN': 'China',
+            'PH': 'Philippines',
+            'PE': 'Peru',
+            'EC': 'Ecuador',
+            'NZ': 'New Zealand',
+            'IT': 'Italy',
+            'GR': 'Greece',
+            'IS': 'Iceland'
+        };
+
+        // Intensity descriptions
+        const intensityDescriptions = {
+            1: 'I - Not felt',
+            2: 'II - Weak',
+            3: 'III - Slight',
+            4: 'IV - Moderate',
+            5: 'V - Rather Strong',
+            6: 'VI - Strong',
+            7: 'VII - Very Strong',
+            8: 'VIII - Destructive',
+            9: 'IX - Violent',
+            10: 'X - Intense',
+            11: 'XI - Extreme',
+            12: 'XII - Catastrophic'
+        };
+
+        // Initialize epicenter marker
+        function createEpicenterMarker() {
+            if (epicenterMarker) map.removeLayer(epicenterMarker);
+
+            const icon = L.divIcon({
+                className: 'epicenter-marker',
+                html: `<div style="
+                    width: 20px;
+                    height: 20px;
+                    background: #ef4444;
+                    border: 3px solid #fff;
+                    border-radius: 50%;
+                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+                    animation: pulse 2s infinite;
+                "></div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+
+            epicenterMarker = L.marker([epicenter.lat, epicenter.lng], { icon }).addTo(map);
+        }
+
+        // Calculate intensity using empirical formula
+        function calculateIntensity(M, h) {
+            // Modified formula: MMI = 1.2*M - 1.0*ln(h+1) + 3
+            let mmi = 1.2 * M - 1.0 * Math.log(h + 1) + 3;
+            mmi = Math.max(1, Math.min(12, mmi));
+            return Math.round(mmi);
+        }
+
+        // Calculate tsunami height
+        function calculateTsunamiHeight(M, h) {
+            if (M < 6.5 || h > 100) return 0;
+            const height = Math.pow(M - 6.5, 2.5) * 2 * Math.exp(-h / 40);
+            return Math.max(0, height);
+        }
+
+        // Calculate fatalities
+        function calculateFatalities(M, h, mmi, tsunamiHeight) {
+            // Base affected population (simplified based on location)
+            const isOcean = isOceanLocation(epicenter.lat, epicenter.lng);
+            const basePop = isOcean ? 50000 : 500000;
+
+            // Earthquake mortality rate based on MMI
+            let mortalityRate = 0;
+            if (mmi >= 12) mortalityRate = 0.6;
+            else if (mmi >= 11) mortalityRate = 0.35;
+            else if (mmi >= 10) mortalityRate = 0.18;
+            else if (mmi >= 9) mortalityRate = 0.08;
+            else if (mmi >= 8) mortalityRate = 0.025;
+            else if (mmi >= 7) mortalityRate = 0.005;
+            else if (mmi >= 6) mortalityRate = 0.0008;
+            else if (mmi >= 5) mortalityRate = 0.0001;
+
+            // Adjust by magnitude and depth
+            const magFactor = Math.pow(10, (M - 5) * 0.3);
+            const depthFactor = Math.exp(-h / 200);
+            const earthquakeDeaths = Math.round(basePop * mortalityRate * magFactor * depthFactor * (0.5 + Math.random() * 0.5));
+
+            // Tsunami deaths
+            let tsunamiDeaths = 0;
+            if (tsunamiHeight > 0.5) {
+                const coastalPop = 200000;
+                const tsunamiMortality = Math.min(0.4, tsunamiHeight / 30) * 0.25;
+                tsunamiDeaths = Math.round(coastalPop * tsunamiMortality * (0.5 + Math.random() * 0.5));
+            }
+
+            return {
+                earthquake: earthquakeDeaths,
+                tsunami: tsunamiDeaths,
+                total: earthquakeDeaths + tsunamiDeaths
+            };
+        }
+
+        // Simple ocean check (very approximate)
+        function isOceanLocation(lat, lng) {
+            // Major ocean areas (simplified)
+            if (lat > 60 || lat < -60) return true; // Polar regions mostly ocean
+            if (Math.abs(lng) > 160) return true; // Pacific
+            if (lng > -40 && lng < 20 && lat > 0) { // Atlantic check
+                if (lat > 50 && lng > -30 && lng < 10) return false; // Europe
+                if (lat > 25 && lng > -15 && lng < 15) return false; // Africa/Med
+                return true;
+            }
+            return false;
+        }
+
+        // Format number with commas
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        // Format full number
+        function formatFullNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        // Get intensity color
+        function getIntensityColor(mmi) {
+            const colors = {
+                1: '#4ade80', 2: '#4ade80', 3: '#a3e635',
+                4: '#facc15', 5: '#fbbf24', 6: '#fb923c',
+                7: '#f87171', 8: '#ef4444', 9: '#dc2626',
+                10: '#b91c1c', 11: '#991b1b', 12: '#7f1d1d'
+            };
+            return colors[mmi] || '#ef4444';
+        }
+
+        // Update display
+        function updateDisplay() {
+            const mmi = calculateIntensity(magnitude, depth);
+            const tsunamiHeight = calculateTsunamiHeight(magnitude, depth);
+            const fatalities = calculateFatalities(magnitude, depth, mmi, tsunamiHeight);
+
+            // Update badges
+            document.getElementById('mag-badge').textContent = magnitude.toFixed(1);
+            document.getElementById('depth-badge').textContent = depth + ' km';
+
+            // Update intensity
+            const intensityColor = getIntensityColor(mmi);
+            document.getElementById('intensity-value').textContent = romanize(mmi);
+            document.getElementById('intensity-desc').textContent = intensityDescriptions[mmi];
+            document.getElementById('intensity-bar').style.width = (mmi / 12 * 100) + '%';
+            document.getElementById('intensity-bar').style.background = intensityColor;
+            document.getElementById('intensity-icon').style.background = intensityColor + '33';
+
+            // Update tsunami
+            document.getElementById('tsunami-value').textContent = tsunamiHeight > 0 ? tsunamiHeight.toFixed(1) + ' m' : 'None';
+            document.getElementById('tsunami-desc').textContent = tsunamiHeight > 0 
+                ? (tsunamiHeight > 5 ? 'Major tsunami threat' : tsunamiHeight > 2 ? 'Moderate tsunami risk' : 'Minor tsunami possible')
+                : 'No tsunami expected';
+            document.getElementById('tsunami-bar').style.width = Math.min(100, tsunamiHeight / 25 * 100) + '%';
+            document.getElementById('tsunami-bar').style.background = tsunamiHeight > 5 ? '#ef4444' : tsunamiHeight > 2 ? '#f59e0b' : '#3b82f6';
+            document.getElementById('tsunami-icon').style.background = (tsunamiHeight > 5 ? '#ef4444' : tsunamiHeight > 2 ? '#f59e0b' : '#3b82f6') + '33';
+
+            // Update deaths
+            document.getElementById('earthquake-deaths').textContent = formatFullNumber(fatalities.earthquake);
+            document.getElementById('tsunami-deaths').textContent = formatFullNumber(fatalities.tsunami);
+            document.getElementById('total-deaths').textContent = formatFullNumber(fatalities.total);
+
+            // Tsunami warning
+            const warningEl = document.getElementById('tsunami-warning');
+            if (tsunamiHeight > 0.5) {
+                warningEl.classList.add('active');
+                document.getElementById('tsunami-text').textContent = 
+                    `Tsunami height estimated at ${tsunamiHeight.toFixed(1)}m. Coastal evacuation recommended within ${Math.round(tsunamiHeight * 50)}km radius.`;
+            } else {
+                warningEl.classList.remove('active');
+            }
+
+            // Update location text
+            const latDir = epicenter.lat >= 0 ? 'N' : 'S';
+            const lngDir = epicenter.lng >= 0 ? 'E' : 'W';
+            document.getElementById('location-text').innerHTML = 
+                `Lat: ${Math.abs(epicenter.lat).toFixed(4)}°${latDir}, Lon: ${Math.abs(epicenter.lng).toFixed(4)}°${lngDir}<br>` +
+                `${getLocationName(epicenter.lat, epicenter.lng)}`;
+
+            // Update intensity circles
+            updateIntensityCircles(mmi);
+        }
+
+        // Roman numerals
+        function romanize(num) {
+            const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+            return roman[num - 1] || num;
+        }
+
+        // Get location name (simplified)
+        function getLocationName(lat, lng) {
+            if (lat > 30 && lat < 46 && lng > 129 && lng < 146) return 'Japan Region';
+            if (lat > 32 && lat < 43 && lng > -125 && lng < -114) return 'California, USA';
+            if (lat > 55 && lat < 72 && lng > -170 && lng < -130) return 'Alaska, USA';
+            if (lat > -11 && lat < 7 && lng > 95 && lng < 142) return 'Indonesia Region';
+            if (lat > -56 && lat < -17 && lng > -82 && lng < -66) return 'Chile/Peru Region';
+            if (lat > 14 && lat < 33 && lng > -119 && lng < -86) return 'Mexico Region';
+            if (lat > 35 && lat < 43 && lng > 25 && lng < 45) return 'Turkey Region';
+            if (lat > 24 && lat < 40 && lng > 44 && lng < 63) return 'Iran Region';
+            if (lat > 18 && lat < 42 && lng > 97 && lng < 123) return 'China Region';
+            if (lat > 5 && lat < 20 && lng > 116 && lng < 127) return 'Philippines Region';
+            if (lat > -48 && lat < -34 && lng > 165 && lng < 179) return 'New Zealand Region';
+            if (lat > 36 && lat < 48 && lng > 6 && lng < 19) return 'Italy Region';
+            if (lat > 34 && lat < 42 && lng > 19 && lng < 30) return 'Greece Region';
+            if (lat > 63 && lat < 67 && lng > -25 && lng < -13) return 'Iceland Region';
+            if (lat > -60 && lat < 60 && Math.abs(lng) > 150) return 'Pacific Ocean';
+            if (lat > -60 && lat < 60 && lng > -70 && lng < 20) return 'Atlantic Ocean';
+            if (lat > -60 && lat < 30 && lng > 20 && lng < 150) return 'Indian Ocean';
+            return 'Open Ocean / Remote Region';
+        }
+
+        // Update intensity circles on map
+        function updateIntensityCircles(mmi) {
+            // Clear old circles
+            intensityCircles.forEach(c => map.removeLayer(c));
+            intensityCircles = [];
+
+            if (!epicenter) return;
+
+            // Draw intensity zones
+            for (let i = mmi; i >= Math.max(1, mmi - 5); i--) {
+                const radius = Math.pow(10, (mmi - i) * 0.5 + 0.5) * 1000; // meters
+                const color = getIntensityColor(i);
+                const circle = L.circle([epicenter.lat, epicenter.lng], {
+                    radius: radius,
+                    fillColor: color,
+                    color: color,
+                    weight: 1,
+                    opacity: 0.3,
+                    fillOpacity: 0.1 + (i / mmi) * 0.15
+                }).addTo(map);
+                intensityCircles.push(circle);
+            }
+        }
+
+        // Simulation
+        function toggleSimulation() {
+            const btn = document.getElementById('simulate-btn');
+
+            if (isSimulating) {
+                stopSimulation();
+                btn.textContent = '▶ Start Simulation';
+                btn.classList.remove('simulating');
+            } else {
+                startSimulation();
+                btn.textContent = '⏹ Stop Simulation';
+                btn.classList.add('simulating');
+            }
+            isSimulating = !isSimulating;
+        }
+
+        function startSimulation() {
+            // Clear previous waves
+            waveLayers.forEach(l => map.removeLayer(l));
+            tsunamiLayers.forEach(l => map.removeLayer(l));
+            waveLayers = [];
+            tsunamiLayers = [];
+
+            let step = 0;
+            const maxSteps = 100;
+
+            simulationInterval = setInterval(() => {
+                step++;
+
+                // P-wave (faster)
+                const pRadius = step * 8000; // meters
+                if (pRadius < 2000000) {
+                    const pWave = L.circle([epicenter.lat, epicenter.lng], {
+                        radius: pRadius,
+                        fill: false,
+                        color: '#ef4444',
+                        weight: 2,
+                        opacity: Math.max(0, 1 - step / 80)
+                    }).addTo(map);
+                    waveLayers.push(pWave);
+                }
+
+                // S-wave (slower, stronger)
+                const sRadius = step * 4500;
+                if (sRadius < 2000000) {
+                    const sWave = L.circle([epicenter.lat, epicenter.lng], {
+                        radius: sRadius,
+                        fill: false,
+                        color: '#f59e0b',
+                        weight: 3,
+                        opacity: Math.max(0, 1 - step / 70)
+                    }).addTo(map);
+                    waveLayers.push(sWave);
+                }
+
+                // Tsunami wave (if applicable)
+                const tsunamiHeight = calculateTsunamiHeight(magnitude, depth);
+                if (tsunamiHeight > 0.5 && step > 5) {
+                    const tRadius = (step - 5) * 3000;
+                    if (tRadius < 3000000) {
+                        const tWave = L.circle([epicenter.lat, epicenter.lng], {
+                            radius: tRadius,
+                            fill: false,
+                            color: '#3b82f6',
+                            weight: 2,
+                            opacity: Math.max(0, 0.8 - step / 100),
+                            dashArray: '10, 10'
+                        }).addTo(map);
+                        tsunamiLayers.push(tWave);
+                    }
+                }
+
+                // Shake effect on map container
+                if (step < 30) {
+                    document.getElementById('map').style.transform = 
+                        `translate(${(Math.random() - 0.5) * 4}px, ${(Math.random() - 0.5) * 4}px)`;
+                } else {
+                    document.getElementById('map').style.transform = 'none';
+                }
+
+                // Cleanup old waves
+                if (waveLayers.length > 50) {
+                    const old = waveLayers.shift();
+                    map.removeLayer(old);
+                }
+                if (tsunamiLayers.length > 50) {
+                    const old = tsunamiLayers.shift();
+                    map.removeLayer(old);
+                }
+
+                if (step > maxSteps) {
+                    stopSimulation();
+                    document.getElementById('simulate-btn').textContent = '▶ Start Simulation';
+                    document.getElementById('simulate-btn').classList.remove('simulating');
+                    isSimulating = false;
+                }
+            }, 100);
+        }
+
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+            }
+            waveLayers.forEach(l => map.removeLayer(l));
+            tsunamiLayers.forEach(l => map.removeLayer(l));
+            waveLayers = [];
+            tsunamiLayers = [];
+            document.getElementById('map').style.transform = 'none';
+        }
+
+        // Event listeners
+        document.getElementById('magnitude').addEventListener('input', (e) => {
+            magnitude = parseFloat(e.target.value);
+            updateDisplay();
+        });
+
+        document.getElementById('depth').addEventListener('input', (e) => {
+            depth = parseInt(e.target.value);
+            updateDisplay();
+        });
+
+        map.on('click', (e) => {
+            epicenter = { lat: e.latlng.lat, lng: e.latlng.lng };
+            createEpicenterMarker();
+            updateDisplay();
+
+            // Fly to location
+            map.flyTo([epicenter.lat, epicenter.lng], 7, {
+                duration: 1.5
+            });
+        });
+
+        // Initialize
+        createEpicenterMarker();
+        updateDisplay();
+
+        // Add CSS animation for pulse
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.5); opacity: 0.7; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
